@@ -1,67 +1,78 @@
-const shiftsRepo = require('../repositories/shifts.repository');
-const { ApiError } = require('../middleware/error.middleware');
+const shiftsRepo = require("../repositories/shifts.repository");
 
 function requireString(value, fieldName, minLen = 1) {
   if (typeof value !== "string" || value.trim().length < minLen) {
     return { field: fieldName, message: `${fieldName} must be a non-empty string` };
   }
-  return null;
 }
-
 
 function validateShiftDto(dto) {
   const errors = [];
-  
-  const e1 = requireString(dto.userName, "userName", 3);
-  if (e1) errors.push(e1);
-  
-  const e2 = requireString(dto.date, "date", 1);
-  if (e2) errors.push(e2);
-  
-  const e3 = requireString(dto.status, "status", 1);
-  if (e3) errors.push(e3);
-
+  if (typeof dto.userId !== "number") {
+    errors.push({ field: "userId", message: "userId must be a number" });
+  }
+  const dateErr = requireString(dto.date, "date");
+  if (dateErr) errors.push(dateErr);
+  const statusErr = requireString(dto.status, "status");
+  if (statusErr) errors.push(statusErr);
   return errors;
 }
 
-module.exports = {
-  getAllShifts: () => {
-    return shiftsRepo.getAll();
+const shiftsService = {
+  getAllShifts: async () => {
+    return await shiftsRepo.getAll();
   },
-  
-  getShiftById: (id) => {
-    const shift = shiftsRepo.getById(Number(id));
+
+  getShiftById: async (id) => {
+    const shift = await shiftsRepo.getById(id);
     if (!shift) {
-      throw new ApiError(404, "NOT_FOUND", "Shift not found");
+      throw { status: 404, code: "NOT_FOUND", message: "Shift not found" };
     }
     return shift;
   },
-  
-  createShift: (dto) => {
+
+  createShift: async (dto) => {
     const errors = validateShiftDto(dto);
     if (errors.length > 0) {
-      throw new ApiError(400, "VALIDATION_ERROR", "Invalid request body", errors);
+      throw { status: 400, code: "VALIDATION_ERROR", message: "Invalid request body", details: errors };
     }
-    return shiftsRepo.add(dto);
+    try {
+      return await shiftsRepo.add(dto);
+    } catch (err) {
+      // Якщо намагаються створити чергування для користувача, якого немає в БД
+      if (String(err.message).includes("FOREIGN KEY constraint failed")) {
+        throw { status: 400, code: "BAD_REQUEST", message: "User with this userId does not exist" };
+      }
+      throw err;
+    }
   },
-  
-  updateShift: (id, dto) => {
+
+  updateShift: async (id, dto) => {
     const errors = validateShiftDto(dto);
     if (errors.length > 0) {
-      throw new ApiError(400, "VALIDATION_ERROR", "Invalid request body", errors);
+      throw { status: 400, code: "VALIDATION_ERROR", message: "Invalid request body", details: errors };
     }
-    const updated = shiftsRepo.update(Number(id), dto);
-    if (!updated) {
-      throw new ApiError(404, "NOT_FOUND", "Shift not found");
+    try {
+      const updatedShift = await shiftsRepo.update(id, dto);
+      if (!updatedShift) {
+        throw { status: 404, code: "NOT_FOUND", message: "Shift not found" };
+      }
+      return updatedShift;
+    } catch (err) {
+      if (String(err.message).includes("FOREIGN KEY constraint failed")) {
+        throw { status: 400, code: "BAD_REQUEST", message: "User with this userId does not exist" };
+      }
+      throw err;
     }
-    return updated;
   },
-  
-  deleteShift: (id) => {
-    const deleted = shiftsRepo.delete(Number(id));
-    if (!deleted) {
-      throw new ApiError(404, "NOT_FOUND", "Shift not found");
+
+  deleteShift: async (id) => {
+    const isDeleted = await shiftsRepo.delete(id);
+    if (!isDeleted) {
+      throw { status: 404, code: "NOT_FOUND", message: "Shift not found" };
     }
     return true;
   }
 };
+
+module.exports = shiftsService;

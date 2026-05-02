@@ -1,21 +1,20 @@
-class ApiError extends Error {
-  constructor(status, code, message, details = null) {
-    super(message);
-    this.status = status;
-    this.code = code;
-    this.details = details;
-  }
-}
-
 const errorHandler = (err, req, res, next) => {
-  if (err instanceof ApiError) {
-    return res.status(err.status).json({
-      error: { code: err.code, message: err.message, details: err.details }
-    });
-  }
+  const status = err.status || 500;
   
-  console.error("Unhandled error:", err);
-  return res.status(500).json(err);
+  const response = {
+    status: status,
+    code: err.code || "INTERNAL_ERROR",
+    message: err.message || "Something went wrong",
+    details: err.details || undefined
+  };
+
+  if (status === 500) {
+    console.error(err);
+  } else {
+    console.log(`[Error] ${status}: ${response.message}`);
+  }
+
+  return res.status(status).json(response);
 };
 
-module.exports = { ApiError, errorHandler };
+module.exports = { errorHandler };

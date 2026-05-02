@@ -1,6 +1,8 @@
 const express = require("express");
 const app = express();
 
+const { initDb } = require("./db/initDb");
+
 const shiftsRoutes = require("./routes/shifts.routes");
 const usersRoutes = require("./routes/users.routes");
 
@@ -22,6 +24,15 @@ app.use("/api/users", usersRoutes);
 
 app.use(errorHandler);
 
-app.listen(3000, () => {
-  console.log("API started on http://localhost:3000");
+async function bootstrap() {
+  await initDb();
+  
+  app.listen(3000, () => {
+    console.log("API started on http://localhost:3000");
+  });
+}
+
+bootstrap().catch((err) => {
+  console.error("Fatal startup error:", err);
+  process.exit(1);
 });

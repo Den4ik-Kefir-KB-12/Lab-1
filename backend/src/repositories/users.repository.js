@@ -1,36 +1,57 @@
-let users = [];
-let nextId = 1;
+const { all, get, run } = require("../db/dbClient");
 
-module.exports = {
-  getAll: () => {
-    return users;
+function escapeSqlString(s) {
+    if (!s) return "";
+    return String(s).replace(/'/g, "''");
+}
+
+const usersRepository = {
+  getAll: async () => {
+    return await all("SELECT id, email, name, createdAt FROM Users ORDER BY id DESC;");
   },
-  
-  getById: (id) => {
-    return users.find(entity => entity.id === id);
+
+  getById: async (id) => {
+    const userId = Number(id);
+    return await get(`SELECT id, email, name, createdAt FROM Users WHERE id = ${userId};`);
   },
-  
-  add: (entity) => {
-    const newItem = { id: nextId++, ...entity };
-    users.push(newItem);
-    return newItem;
+
+  add: async (entity) => {
+    const email = escapeSqlString(entity.email);
+    const name = escapeSqlString(entity.name);
+    const now = new Date().toISOString();
+
+    const sql = `
+      INSERT INTO Users (email, name, createdAt)
+      VALUES ('${email}', '${name}', '${now}');
+    `;
+    
+    const result = await run(sql);
+    
+    return await get(`SELECT id, email, name, createdAt FROM Users WHERE id = ${result.lastID};`);
   },
-  
-  update: (id, entity) => {
-    const index = users.findIndex(item => item.id === id);
-    if (index !== -1) {
-      users[index] = { ...users[index], ...entity };
-      return users[index];
-    }
-    return null;
+
+  update: async (id, entity) => {
+    const userId = Number(id);
+    const email = escapeSqlString(entity.email);
+    const name = escapeSqlString(entity.name);
+    
+    const sql = `
+      UPDATE Users
+      SET email = '${email}', name = '${name}'
+      WHERE id = ${userId};
+    `;
+    
+    const result = await run(sql);
+    if (result.changes === 0) return null; 
+    
+    return await get(`SELECT id, email, name, createdAt FROM Users WHERE id = ${userId};`);
   },
-  
-  delete: (id) => {
-    const index = users.findIndex(item => item.id === id);
-    if (index !== -1) {
-      users.splice(index, 1);
-      return true;
-    }
-    return false;
+
+  delete: async (id) => {
+    const userId = Number(id);
+    const result = await run(`DELETE FROM Users WHERE id = ${userId};`);
+    return result.changes > 0;
   }
 };
+
+module.exports = usersRepository;
