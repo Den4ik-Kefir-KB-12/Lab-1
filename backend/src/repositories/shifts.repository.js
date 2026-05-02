@@ -6,8 +6,35 @@ function escapeSqlString(s) {
 }
 
 const shiftsRepository = {
-  getAll: async () => {
-    return await all("SELECT id, userId, date, status, createdAt FROM Shifts ORDER BY id DESC;");
+  getAll: async (filters = {}) => {
+    let sql = "SELECT id, userId, date, status, createdAt FROM Shifts";
+    const conditions = [];
+
+    if (filters.userId) {
+        conditions.push(`userId = ${Number(filters.userId)}`);
+    }
+    if (filters.status) {
+        conditions.push(`status = '${escapeSqlString(filters.status)}'`);
+    }
+    
+    if (conditions.length > 0) {
+        sql += " WHERE " + conditions.join(" AND ");
+    }
+
+    const allowedSorts = ['id', 'date', 'createdAt', 'userId'];
+    if (filters.sort && allowedSorts.includes(filters.sort)) {
+        const order = filters.order === 'asc' ? 'ASC' : 'DESC';
+        sql += ` ORDER BY ${filters.sort} ${order}`;
+    } else {
+        sql += " ORDER BY id DESC";
+    }
+
+    if (filters.limit) {
+        sql += ` LIMIT ${Number(filters.limit)}`;
+    }
+
+    sql += ";";
+    return await all(sql);
   },
 
   getById: async (id) => {

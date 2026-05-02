@@ -1,4 +1,4 @@
-const { db } = require("./db");
+const db = require("./db");
 
 function all(sql) {
     return new Promise((resolve, reject) => {

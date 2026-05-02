@@ -5,6 +5,7 @@ const { initDb } = require("./db/initDb");
 
 const shiftsRoutes = require("./routes/shifts.routes");
 const usersRoutes = require("./routes/users.routes");
+const swapRequestsRoutes = require("./routes/swapRequests.routes"); 
 
 const { errorHandler } = require("./middleware/error.middleware");
 
@@ -21,6 +22,8 @@ app.use((req, res, next) => {
 
 app.use("/api/shifts", shiftsRoutes);
 app.use("/api/users", usersRoutes);
+// ДОДАНО: Підключення URL для заявок на заміну
+app.use("/api/swap-requests", swapRequestsRoutes); 
 
 app.use(errorHandler);
 
