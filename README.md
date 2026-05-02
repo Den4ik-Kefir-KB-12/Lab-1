@@ -53,38 +53,59 @@ Shifts: Чергування (поля: id, userName, date, status)
 
 # Лабораторна робота №3 - REST API з SQLite
 
-## Як запустити проєкт
-1. Встановіть залежності командою: `npm install`
-2. Запустіть сервер у режимі розробки: `npm run dev` (або `node src/index.js`)
-3. Сервер запуститься на порту 3000 (`http://localhost:3000`).
+## Варіант №11: Сервіс чергувань у лабораторії
+Бекенд-система для керування графіком чергувань студентів, що дозволяє відстежувати зміни та обробляти заявки на заміну чергових.
 
-## Де створюється база даних
-Під час першого запуску сервера автоматично виконується ініціалізація бази даних. 
-Файл бази створюється у корені проєкту в директорії `data/` і має назву `app.db` (цей файл додано у `.gitignore`).
+## Як запустити проєкт
+1. **Встановіть залежності:**
+   ```bash
+   npm install
+2. **Запустіть сервер у режимі розробки:**
+   ```bash
+   npm run dev
+3. **Порт за замовчуванням: Сервер запуститься на http://localhost:3000**
+
+## База даних та ініціалізація
+**СУБД:** SQLite.
+
+**Файл бази:** Автоматично створюється за шляхом data/app.db.
+
+**Схема:** Таблиці створюються автоматично при першому старті за допомогою SQL-команд CREATE TABLE IF NOT EXISTS.
+
+**Seed (Тестові дані):** Реалізовано механізм автоматичного наповнення бази. Якщо таблиця користувачів порожня, система автоматично додає 6 тестових записів (по 2 для кожної сутності).
 
 ## Схема БД (Структура)
-База даних складається з двох пов'язаних таблиць (зв'язок 1:N). Обмеження цілісності підтримуються через `PRAGMA foreign_keys = ON;`.
+### В системі реалізовано 3 взаємопов'язані сутності:
 
-**Таблиця 1: Users (Користувачі)**
-- `id` (INTEGER PRIMARY KEY)
-- `email` (TEXT NOT NULL UNIQUE) - обмеження унікальності
-- `name` (TEXT NOT NULL)
-- `createdAt` (TEXT NOT NULL)
+1. **Users (Користувачі):** id, email (unique), name, createdAt.
 
-**Таблиця 2: Shifts (Чергування)**
-- `id` (INTEGER PRIMARY KEY)
-- `userId` (INTEGER NOT NULL) - зовнішній ключ (FOREIGN KEY) до `Users(id)` з `ON DELETE CASCADE`.
-- `date` (TEXT NOT NULL)
-- `status` (TEXT NOT NULL)
-- `createdAt` (TEXT NOT NULL)
+2. **Shifts (Чергування):** id, userId, date, status, createdAt.
+    ```bash
+    Зв'язок: FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE.
+
+3. **SwapRequests (Заявки на заміну):** id, shiftId, reason, status, createdAt.
+    ```bash
+    Зв'язок: FOREIGN KEY (shiftId) REFERENCES Shifts(id) ON DELETE CASCADE.
 
 ## Приклади запитів (cURL)
+**Отримати всі заявки на заміну (3-тя сутність)**
+    
+    curl http://localhost:3000/api/swap-requests
+**Складний запит (Фільтрація + Сортування + Ліміт)**
 
-**Створити користувача:**
-curl -X POST http://localhost:3000/api/users -H "Content-Type: application/json" -d "{\"email\":\"test@gmail.com\", \"name\":\"Ivan\"}"
+Демонстрація виконання вимоги на використання блоків WHERE, ORDER BY та LIMIT в одному запиті:
+   
+    curl "http://localhost:3000/api/shifts?userId=1&sort=date&order=desc&limit=5"
+**Створити нове чергування**
 
-**Отримати список чергувань:**
-curl http://localhost:3000/api/shifts
+    curl -X POST http://localhost:3000/api/shifts -H "Content-Type: application/json" -d '{"userId": 1, "date": "2026-05-10", "status": "Planned"}'
+**Отримати користувача за ID**
 
-**Створити чергування:**
-curl -X POST http://localhost:3000/api/shifts -H "Content-Type: application/json" -d "{\"userId\":1, \"date\":\"2026-05-02\", \"status\":\"Open\"}"
+    curl http://localhost:3000/api/users/1
+
+##Технічні особливості
+**Повний CRUD:** Реалізовано методи POST, GET (list/id), PUT та DELETE для основних сутностей.
+
+**Централізована обробка помилок:** Middleware формує уніфіковані JSON-відповіді для помилок 400, 404 та 500.
+
+**Логування:** Сервер логує кожен HTTP-запит (метод, шлях, статус-код) та ключові події бази даних (ініціалізація схеми, додавання seed-даних).
