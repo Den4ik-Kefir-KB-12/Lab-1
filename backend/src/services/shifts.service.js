@@ -19,8 +19,8 @@ function validateShiftDto(dto) {
 }
 
 const shiftsService = {
-  getAllShifts: async () => {
-    return await shiftsRepo.getAll();
+  getAllShifts: async (filters) => {
+    return await shiftsRepo.getAll(filters);
   },
 
   getShiftById: async (id) => {
@@ -39,7 +39,6 @@ const shiftsService = {
     try {
       return await shiftsRepo.add(dto);
     } catch (err) {
-      // Якщо намагаються створити чергування для користувача, якого немає в БД
       if (String(err.message).includes("FOREIGN KEY constraint failed")) {
         throw { status: 400, code: "BAD_REQUEST", message: "User with this userId does not exist" };
       }

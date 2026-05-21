@@ -3,7 +3,7 @@ const shiftsService = require("../services/shifts.service");
 const shiftsController = {
   getAll: async (req, res, next) => {
     try {
-      const items = await shiftsService.getAllShifts();
+      const items = await shiftsService.getAllShifts(req.query);
       res.status(200).json({ items });
     } catch (err) {
       next(err);
