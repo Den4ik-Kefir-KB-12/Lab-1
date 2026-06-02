@@ -1,50 +1,40 @@
-const shiftsService = require("../services/shifts.service");
+const shiftsService = require('../services/shifts.service');
 
-const shiftsController = {
-  getAll: async (req, res, next) => {
-    try {
-      const items = await shiftsService.getAllShifts(req.query);
-      res.status(200).json({ items });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  getById: async (req, res, next) => {
-    try {
-      const item = await shiftsService.getShiftById(req.params.id);
-      res.status(200).json(item);
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  create: async (req, res, next) => {
-    try {
-      const newItem = await shiftsService.createShift(req.body);
-      res.status(201).json(newItem);
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  update: async (req, res, next) => {
-    try {
-      const updatedItem = await shiftsService.updateShift(req.params.id, req.body);
-      res.status(200).json(updatedItem);
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  delete: async (req, res, next) => {
-    try {
-      await shiftsService.deleteShift(req.params.id);
-      res.status(204).send();
-    } catch (err) {
-      next(err);
-    }
-  }
+const getAll = async (req, res, next) => {
+  try {
+    const filters = { ...req.query, userId: req.user.id };
+    const shifts = await shiftsService.getAllShifts(filters);
+    res.status(200).json({ items: shifts });
+  } catch (error) { next(error); }
 };
 
-module.exports = shiftsController;
+const getById = async (req, res, next) => {
+  try {
+    const shift = await shiftsService.getShiftById(req.params.id, req.user.id);
+    res.status(200).json(shift);
+  } catch (error) { next(error); }
+};
+
+const create = async (req, res, next) => {
+  try {
+    const shiftData = { ...req.body, userId: req.user.id };
+    const newShift = await shiftsService.createShift(shiftData);
+    res.status(201).json(newShift);
+  } catch (error) { next(error); }
+};
+
+const update = async (req, res, next) => {
+  try {
+    const updatedShift = await shiftsService.updateShift(req.params.id, req.body, req.user.id);
+    res.status(200).json(updatedShift);
+  } catch (error) { next(error); }
+};
+
+const remove = async (req, res, next) => {
+  try {
+    await shiftsService.deleteShift(req.params.id, req.user.id);
+    res.status(204).send();
+  } catch (error) { next(error); }
+};
+
+module.exports = { getAll, getById, create, update, remove };

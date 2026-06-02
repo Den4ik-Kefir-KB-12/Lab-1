@@ -22,11 +22,14 @@ const shiftsService = {
   getAllShifts: async (filters) => {
     return await shiftsRepo.getAll(filters);
   },
-
-  getShiftById: async (id) => {
+  
+  getShiftById: async (id, ownerId) => {
     const shift = await shiftsRepo.getById(id);
     if (!shift) {
       throw { status: 404, code: "NOT_FOUND", message: "Shift not found" };
+    }
+    if (shift.userId !== ownerId) {
+      throw { status: 403, code: "FORBIDDEN", message: "Forbidden: Shift belongs to another user" };
     }
     return shift;
   },
@@ -46,15 +49,15 @@ const shiftsService = {
     }
   },
 
-  updateShift: async (id, dto) => {
+  updateShift: async (id, dto, ownerId) => {
     const errors = validateShiftDto(dto);
     if (errors.length > 0) {
       throw { status: 400, code: "VALIDATION_ERROR", message: "Invalid request body", details: errors };
     }
     try {
-      const updatedShift = await shiftsRepo.update(id, dto);
+      const updatedShift = await shiftsRepo.update(id, dto, ownerId);
       if (!updatedShift) {
-        throw { status: 404, code: "NOT_FOUND", message: "Shift not found" };
+        throw { status: 403, code: "FORBIDDEN", message: "Forbidden: Shift not found or belongs to another user" };
       }
       return updatedShift;
     } catch (err) {
@@ -65,10 +68,10 @@ const shiftsService = {
     }
   },
 
-  deleteShift: async (id) => {
-    const isDeleted = await shiftsRepo.delete(id);
+  deleteShift: async (id, ownerId) => {
+    const isDeleted = await shiftsRepo.delete(id, ownerId);
     if (!isDeleted) {
-      throw { status: 404, code: "NOT_FOUND", message: "Shift not found" };
+      throw { status: 403, code: "FORBIDDEN", message: "Forbidden: Shift not found or belongs to another user" };
     }
     return true;
   }

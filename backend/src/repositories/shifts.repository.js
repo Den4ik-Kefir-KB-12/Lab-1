@@ -1,20 +1,18 @@
 const { all, get, run } = require("../db/dbClient");
 
-function escapeSqlString(s) {
-    if (!s) return "";
-    return String(s).replace(/'/g, "''");
-}
-
 const shiftsRepository = {
   getAll: async (filters = {}) => {
     let sql = "SELECT id, userId, date, status, createdAt FROM Shifts";
     const conditions = [];
+    const params = [];
 
     if (filters.userId) {
-        conditions.push(`userId = ${Number(filters.userId)}`);
+        conditions.push("userId = ?");
+        params.push(Number(filters.userId));
     }
     if (filters.status) {
-        conditions.push(`status = '${escapeSqlString(filters.status)}'`);
+        conditions.push("status = ?");
+        params.push(filters.status);
     }
     
     if (conditions.length > 0) {
@@ -30,54 +28,45 @@ const shiftsRepository = {
     }
 
     if (filters.limit) {
-        sql += ` LIMIT ${Number(filters.limit)}`;
+        sql += " LIMIT ?";
+        params.push(Number(filters.limit));
     }
 
     sql += ";";
-    return await all(sql);
+    return await all(sql, params);
   },
 
   getById: async (id) => {
-    const shiftId = Number(id);
-    return await get(`SELECT id, userId, date, status, createdAt FROM Shifts WHERE id = ${shiftId};`);
+    return await get(`SELECT id, userId, date, status, createdAt FROM Shifts WHERE id = ?;`, [Number(id)]);
   },
 
   add: async (entity) => {
-    const userId = Number(entity.userId);
-    const date = escapeSqlString(entity.date);
-    const status = escapeSqlString(entity.status);
     const now = new Date().toISOString();
-
     const sql = `
       INSERT INTO Shifts (userId, date, status, createdAt)
-      VALUES (${userId}, '${date}', '${status}', '${now}');
+      VALUES (?, ?, ?, ?);
     `;
     
-    const result = await run(sql);
-    return await get(`SELECT id, userId, date, status, createdAt FROM Shifts WHERE id = ${result.lastID};`);
+    const result = await run(sql, [Number(entity.userId), entity.date, entity.status || 'Planned', now]);
+    return await get(`SELECT id, userId, date, status, createdAt FROM Shifts WHERE id = ?;`, [result.lastID]);
   },
 
-  update: async (id, entity) => {
-    const shiftId = Number(id);
-    const userId = Number(entity.userId);
-    const date = escapeSqlString(entity.date);
-    const status = escapeSqlString(entity.status);
-    
+  update: async (id, entity, ownerId) => {
     const sql = `
       UPDATE Shifts
-      SET userId = ${userId}, date = '${date}', status = '${status}'
-      WHERE id = ${shiftId};
+      SET date = ?, status = ?
+      WHERE id = ? AND userId = ?; 
     `;
     
-    const result = await run(sql);
+    const result = await run(sql, [entity.date, entity.status, Number(id), Number(ownerId)]);
     if (result.changes === 0) return null;
     
-    return await get(`SELECT id, userId, date, status, createdAt FROM Shifts WHERE id = ${shiftId};`);
+    return await get(`SELECT id, userId, date, status, createdAt FROM Shifts WHERE id = ?;`, [Number(id)]);
   },
 
-  delete: async (id) => {
-    const shiftId = Number(id);
-    const result = await run(`DELETE FROM Shifts WHERE id = ${shiftId};`);
+  delete: async (id, ownerId) => {
+    const sql = `DELETE FROM Shifts WHERE id = ? AND userId = ?;`;
+    const result = await run(sql, [Number(id), Number(ownerId)]);
     return result.changes > 0;
   }
 };
