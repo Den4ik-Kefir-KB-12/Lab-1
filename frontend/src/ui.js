@@ -34,34 +34,63 @@ export function renderTable(items, searchQuery = "", sortDirection = "asc") {
         return 0;
     });
 
-    tbody.innerHTML = filteredItems.map((item, index) => {
+    tbody.innerHTML = "";
+
+    filteredItems.forEach((item, index) => {
         let statusUA = item.status || "-";
         if (item.status === "Planned") statusUA = "Заплановано";
         if (item.status === "Completed") statusUA = "Виконано";
         if (item.status === "Cancelled") statusUA = "Скасовано";
 
-        return `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${item.date || "-"}</td>
-                <td>${item.timeSlot || "-"}</td>
-                <td>${item.userName || item.name || "<i>(Без імені)</i>"}</td>
-                <td>${statusUA}</td>
-                <td>${item.comment || ""}</td>
-                <td>
-                    <button type="button" class="edit-btn" data-id="${item.id}">Редагувати</button>
-                    <button type="button" class="delete-btn" data-id="${item.id}">Видалити</button>
-                </td>
-            </tr>
-        `;
-    }).join("");
+        const tr = document.createElement("tr");
+
+        const tdIndex = document.createElement("td");
+        tdIndex.textContent = index + 1;
+
+        const tdDate = document.createElement("td");
+        tdDate.textContent = item.date || "-";
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = item.timeSlot || "-";
+
+        const tdUser = document.createElement("td");
+        if (item.userName || item.name) {
+            tdUser.textContent = item.userName || item.name;
+        } else {
+            tdUser.innerHTML = "<i>(Без імені)</i>";
+        }
+
+        const tdStatus = document.createElement("td");
+        tdStatus.textContent = statusUA;
+
+        const tdComment = document.createElement("td");
+        tdComment.textContent = item.comment || ""; 
+
+        const tdActions = document.createElement("td");
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "edit-btn";
+        editBtn.dataset.id = item.id;
+        editBtn.textContent = "Редагувати";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "delete-btn";
+        deleteBtn.dataset.id = item.id;
+        deleteBtn.textContent = "Видалити";
+
+        tdActions.append(editBtn, " ", deleteBtn);
+
+        tr.append(tdIndex, tdDate, tdTime, tdUser, tdStatus, tdComment, tdActions);
+        tbody.appendChild(tr);
+    });
 }
 
 export function showNotice(text, isError = false) {
     if (noticeEl) {
-        noticeEl.innerHTML = text;
+        noticeEl.textContent = text; 
         noticeEl.style.color = isError ? "red" : "green";
-        setTimeout(() => { noticeEl.innerHTML = ""; }, 4000);
+        setTimeout(() => { noticeEl.textContent = ""; }, 4000);
     }
     
     if (isError) {
@@ -110,14 +139,15 @@ export function resetForm() {
     clearErrors();
     formTitle.innerText = "Додати чергування";
 }
+
 export function showError(inputId, errorId, message) {
     document.getElementById(inputId).classList.add("invalid");
-    document.getElementById(errorId).innerHTML = message;
+    document.getElementById(errorId).textContent = message; 
 }
 
 export function clearError(inputId, errorId) {
     document.getElementById(inputId).classList.remove("invalid");
-    document.getElementById(errorId).innerHTML = "";
+    document.getElementById(errorId).textContent = ""; 
 }
 
 export function clearErrors() {

@@ -6,9 +6,15 @@ async function request(path, options = {}, timeoutMs = 10000) {
     const id = setTimeout(() => controller.abort(), timeoutMs);
     let response;
 
+    const headers = {
+        "X-Demo-UserId": "1", 
+        ...(options.headers || {})
+    };
+
     try {
         response = await fetch(url, {
             ...options,
+            headers,
             signal: controller.signal
         });
     } catch (e) {
